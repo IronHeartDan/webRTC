@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="javascriptreact">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io("http://localhost:3000");
+    </script>
+    <title>WebRTC</title>
+
+    <style>
+      * {
+        margin: 0;
+      }
+      #localVideo {
+        display: none;
+        border: 1px solid #dddddd;
+        border-radius: 5px;
+        position: fixed;
+        height: 150px;
+        right: 0;
+        width: 100px;
+        box-shadow: 0 0 10px black;
+      }
+
+      #remoteVideo {
+        position: fixed;
+        height: 100vh;
+        width: 100vw;
+      }
+      #opt {
+        position: fixed;
+        display: flex;
+        align-items: center;
+        bottom: 0;
+        flex-direction: column;
+        width: 100vw;
+        border-radius: 10px 10px 0 0;
+        justify-content: center;
+        box-shadow: 0 0 10px black;
+        background-color: black;
+      }
+
+      #info {
+        padding: 10px;
+        color: white;
+      }
+
+      #connectionBtn {
+        width: 90%;
+        border-radius: 3px;
+        height: 35px;
+        border-radius: 5px;
+        margin: 10px;
+        background-color: lightgoldenrodyellow;
+        outline: none;
+      }
+      #getRoom {
+        width: 80%;
+        border: none;
+        padding: 10px;
+        background: transparent;
+        outline: none;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <video autoplay id="localVideo"></video>
+    <video autoplay id="remoteVideo"></video>
+    <div id="opt">
+      <p id="info" style="display: none"></p>
+      <input type="text" placeholder="Enter OR Create A Room" id="getRoom" />
+      <button id="connectionBtn" disabled onclick="check()">Create/Join</button>
+    </div>
+
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script>
+      const localConnection = new RTCPeerConnection();
+      const remoteConnection = new RTCPeerConnection();
+      var offer = null;
+
+      const localVideo = document.getElementById("localVideo");
+      const remoteVideo = document.getElementById("remoteVideo");
+      const connectionBtn = document.getElementById("connectionBtn");
+      const getRoom = document.getElementById("getRoom");
+      const info = document.getElementById("info");
+      const opt = document.getElementById("opt");
+      var room = null;
+      var myStream = null;
+
+      navigator.mediaDevices
+        .getUserMedia({
+          video: true,
+          audio: false,
+        })
+        .then((stream) => {
+          myStream = stream;
+          remoteVideo.srcObject = stream;
+          remoteVideo.play();
+          for (const track of stream.getTracks()) {
+            localConnection.addTrack(track, stream);
+            remoteConnection.addTrack(track, stream);
+          }
+          localConnection.onicecandidate = (e) => {
+            offer = localConnection.localDescription;
+            init();
+          };
+          localConnection
+            .createOffer()
+            .then((o) =>
+              localConnection
+                .setLocalDescription(o)
+                .then(console.log("My Local Offer Set"))
+            );
+        })
+        .catch((e) => {
+          alert(e);
+        });
+
+      function init() {
+        connectionBtn.disabled = false;
+
+        localConnection.ontrack = (e) => {
+          console.log("Local Track Received..");
+          remoteVideo.srcObject = e.streams[0];
+          remoteVideo.play();
+          localVideo.style.display = "block";
+          localVideo.srcObject = myStream;
+          localVideo.play();
+          info.innerText = "Connected..";
+          opt.style.backgroundColor = "lightseagreen";
+        };
+
+        remoteConnection.ontrack = (e) => {
+          console.log("Remote Track Received..");
+          remoteVideo.srcObject = e.streams[0];
+          remoteVideo.play();
+          connectionBtn.style.display = "none";
+          getRoom.style.display = "none";
+          info.style.display = "block";
+          localVideo.style.display = "block";
+          localVideo.srcObject = myStream;
+          localVideo.play();
+          info.innerText = "Connected..";
+          opt.style.backgroundColor = "lightseagreen";
+        };
+      }
+
+      function check() {
+        socket.emit("check", getRoom.value);
+      }
+
+      socket.on("waiting", () => {
+        room = getRoom.value;
+        connectionBtn.style.display = "none";
+        getRoom.style.display = "none";
+        info.style.display = "block";
+        info.innerText = "Waiting For Another Person...";
+      });
+
+      socket.on("joined", () => {
+        socket.emit("call", { room: room, offer: offer });
+      });
+
+      socket.on("full", () => {
+        alert("Room Is Already Occupied..");
+      });
+
+      socket.on("call", (call) => {
+        remoteConnection.setRemoteDescription(call.offer).then(() => {
+          remoteConnection.createAnswer().then((a) => {
+            remoteConnection.setLocalDescription(a);
+            socket.emit("answer", { room: call.room, answer: a });
+          });
+        });
+      });
+
+      socket.on("answer", (answer) => {
+        localConnection.setRemoteDescription(answer.answer).then(() => {
+          console.log("Sucess");
+        });
+      });
+
+      socket.on("closed", () => {
+        alert("Connection Closed...");
+        window.location.reload();
+      });
+    </script>
+  </body>
+</html>
