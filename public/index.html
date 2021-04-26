@@ -12,66 +12,62 @@
 
     <style>
       * {
-        margin: 0;
+        margin: 0%;
       }
-      #localVideo {
-        display: none;
-        border: 1px solid #dddddd;
-        border-radius: 5px;
-        position: fixed;
-        height: 150px;
-        right: 0;
-        width: 100px;
-        box-shadow: 0 0 10px black;
-      }
-
       #remoteVideo {
         position: fixed;
-        height: 100vh;
         width: 100vw;
+        height: 100vh;
+        background-color: black;
+        object-fit: contain;
+      }
+      #localVideo {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 150px;
+        margin: 5px;
+        box-shadow: 0 0 10px black;
+        background-color: white;
+        object-fit: contain;
+        display: none;
       }
       #opt {
         position: fixed;
-        display: flex;
-        align-items: center;
         bottom: 0;
-        flex-direction: column;
         width: 100vw;
-        border-radius: 10px 10px 0 0;
-        justify-content: center;
-        box-shadow: 0 0 10px black;
+        height: max-content;
         background-color: black;
+        border-radius: 10px 10px 0 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-evenly;
       }
-
-      #info {
-        padding: 10px;
-        color: white;
-      }
-
-      #connectionBtn {
-        width: 90%;
-        border-radius: 3px;
-        height: 35px;
-        border-radius: 5px;
-        margin: 10px;
-        background-color: lightgoldenrodyellow;
-        outline: none;
-      }
-      #getRoom {
-        width: 80%;
+      #opt > button {
+        height: 40px;
+        margin: 2px;
+        width: 60%;
         border: none;
-        padding: 10px;
-        background: transparent;
+      }
+      #opt > input {
+        height: 40px;
+        margin: 2px;
+        width: 90%;
+        border-radius: 5px;
+        border: none;
         outline: none;
-        color: white;
+        font-size: 1.5rem;
+        padding-left: 10px;
       }
     </style>
   </head>
   <body>
-    <video autoplay id="localVideo"></video>
     <video autoplay id="remoteVideo"></video>
+    <video autoplay id="localVideo"></video>
     <div id="opt">
-      <p id="info" style="display: none"></p>
+      <p id="info" style="display: none; color: white"></p>
       <input type="text" placeholder="Enter OR Create A Room" id="getRoom" />
       <button id="connectionBtn" disabled onclick="check()">Create/Join</button>
     </div>
@@ -135,7 +131,6 @@
         connectionBtn.disabled = false;
 
         localConnection.ontrack = (e) => {
-          console.log("Local Track Received..");
           remoteVideo.srcObject = e.streams[0];
           remoteVideo.muted = false;
           remoteVideo.play();
