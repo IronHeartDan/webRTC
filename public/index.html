@@ -112,22 +112,25 @@
             remoteConnection.addTrack(track, stream);
           }
           localConnection.onicecandidate = (e) => {
-            offer = localConnection.localDescription;
-            init();
+            console.log(e);
+            if (e.candidate == null) {
+              offer = localConnection.localDescription;
+              init();
+            }
           };
-          localConnection
-            .createOffer()
-            .then((o) =>
-              localConnection
-                .setLocalDescription(o)
-                .then(console.log("My Local Offer Set"))
-            );
+          localConnection.createOffer().then((o) =>
+            localConnection.setLocalDescription(o).then(() => {
+              offer = o;
+              console.log("Local Offer Set");
+            })
+          );
         })
         .catch((e) => {
           alert(e);
         });
 
       function init() {
+        console.log("Init");
         connectionBtn.disabled = false;
 
         localConnection.ontrack = (e) => {
